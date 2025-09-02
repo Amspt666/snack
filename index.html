@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
-    <title>高级贪吃蛇游戏</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃的太空人</title>
     <style>
         body {
             display: flex;
@@ -25,8 +27,8 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 400px; /* Adjust the width */
+            height: 500px; /* Adjust the height */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -34,17 +36,19 @@
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
             font-size: 24px;
+            border-radius: 10px;
         }
         button {
             margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 18px;
+            padding: 15px 30px; /* Increase button size */
+            font-size: 20px; /* Adjust font size */
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s;
+            width: 150px; /* Set fixed width for buttons */
         }
         button:hover {
             background-color: #45a049;
@@ -56,6 +60,12 @@
             color: white;
             font-size: 20px;
         }
+        #difficultyMenu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px; /* Increase gap between buttons */
+        }
     </style>
 </head>
 <body>
@@ -63,7 +73,12 @@
         <canvas id="gameCanvas" width="400" height="400"></canvas>
         <div id="gameOverlay">
             <h1>贪吃蛇游戏</h1>
-            <p id="gameMessage">按任意方向键开始游戏</p>
+            <p id="gameMessage">选择难度开始游戏</p>
+            <div id="difficultyMenu">
+                <button onclick="setDifficulty('easy')">简单</button>
+                <button onclick="setDifficulty('medium')">中等</button>
+                <button onclick="setDifficulty('hard')">困难</button>
+            </div>
             <button id="restartButton" style="display: none;">重新开始</button>
         </div>
         <div id="scoreDisplay">得分: 0</div>
@@ -73,7 +88,6 @@
         // 游戏常量
         const GRID_SIZE = 20;
         const CELL_SIZE = 20;
-        const FPS = 15;
         
         // 游戏变量
         let canvas, ctx;
@@ -84,10 +98,12 @@
         let lastRenderTime = 0;
         let gameStarted = false;
         let gameOver = false;
-        
+        let difficulty = 'medium'; // 默认难度中等
+        let FPS = 15; // 默认帧率
+
         // DOM元素
-        let gameOverlay, gameMessage, restartButton, scoreDisplay;
-        
+        let gameOverlay, gameMessage, restartButton, scoreDisplay, difficultyMenu;
+
         // 初始化游戏
         function init() {
             canvas = document.getElementById('gameCanvas');
@@ -96,14 +112,34 @@
             gameMessage = document.getElementById('gameMessage');
             restartButton = document.getElementById('restartButton');
             scoreDisplay = document.getElementById('scoreDisplay');
-            
+            difficultyMenu = document.getElementById('difficultyMenu');
+
             // 设置事件监听
             document.addEventListener('keydown', handleKeyPress);
             restartButton.addEventListener('click', resetGame);
-            
+
+            // 显示难度选择菜单
+            difficultyMenu.style.display = 'flex';
+        }
+
+        // 设置游戏难度
+        function setDifficulty(level) {
+            difficulty = level;
+            switch (difficulty) {
+                case 'easy':
+                    FPS = 10;
+                    break;
+                case 'medium':
+                    FPS = 15;
+                    break;
+                case 'hard':
+                    FPS = 20;
+                    break;
+            }
+            difficultyMenu.style.display = 'none'; // 隐藏难度选择菜单
             resetGame();
         }
-        
+
         // 重置游戏状态
         function resetGame() {
             // 初始化蛇
@@ -112,51 +148,51 @@
                 {x: 9, y: 10},
                 {x: 8, y: 10}
             ];
-            
+
             // 初始化食物
             spawnFood();
-            
+
             // 初始化方向
             direction = 'right';
             nextDirection = 'right';
-            
+
             // 初始化分数
             score = 0;
             scoreDisplay.textContent = `得分: ${score}`;
-            
+
             // 游戏状态
             gameOver = false;
             gameStarted = false;
-            
+
             // 隐藏重新开始按钮
             restartButton.style.display = 'none';
             gameMessage.textContent = '按任意方向键开始游戏';
-            
+
             // 清除之前的游戏循环
             if (gameInterval) {
                 clearInterval(gameInterval);
             }
-            
+
             // 开始新的游戏循环
             gameInterval = setInterval(gameLoop, 1000 / FPS);
         }
-        
+
         // 游戏主循环
         function gameLoop() {
             update();
             render();
         }
-        
+
         // 更新游戏状态
         function update() {
             if (!gameStarted || gameOver) return;
-            
+
             // 更新方向
             direction = nextDirection;
-            
+
             // 计算新的蛇头位置
             const head = {...snake[0]};
-            
+
             switch (direction) {
                 case 'up':
                     head.y -= 1;
@@ -171,7 +207,7 @@
                     head.x += 1;
                     break;
             }
-            
+
             // 检查碰撞
             if (
                 head.x < 0 || head.x >= GRID_SIZE ||
@@ -181,10 +217,10 @@
                 endGame();
                 return;
             }
-            
+
             // 添加新蛇头
             snake.unshift(head);
-            
+
             // 检查是否吃到食物
             if (head.x === food.x && head.y === food.y) {
                 score += 10;
@@ -195,83 +231,35 @@
                 snake.pop();
             }
         }
-        
+
         // 渲染游戏
         function render() {
             // 清空画布
             ctx.fillStyle = '#111';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // 绘制食物
-            ctx.fillStyle = '#FF5252';
-            ctx.beginPath();
-            ctx.arc(
-                food.x * CELL_SIZE + CELL_SIZE / 2,
-                food.y * CELL_SIZE + CELL_SIZE / 2,
-                CELL_SIZE / 2 - 2,
-                0,
-                Math.PI * 2
-            );
-            ctx.fill();
-            
+
+            // 绘制食物（使用🍺 emoji）
+            ctx.font = `${CELL_SIZE}px Arial`;
+            ctx.fillStyle = 'white';
+            ctx.fillText('🍺', food.x * CELL_SIZE, food.y * CELL_SIZE + CELL_SIZE);
+
             // 绘制蛇
             snake.forEach((segment, index) => {
-                // 蛇头用不同颜色
                 const isHead = index === 0;
-                ctx.fillStyle = isHead ? '#4CAF50' : '#8BC34A';
-                
-                // 蛇身圆角效果
-                const radius = CELL_SIZE / 2 - 1;
-                const x = segment.x * CELL_SIZE + radius;
-                const y = segment.y * CELL_SIZE + radius;
-                
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 蛇头添加眼睛
+                let emoji;
+
+                // 蛇头使用😍 emoji，蛇身使用🫣 emoji
                 if (isHead) {
-                    ctx.fillStyle = 'white';
-                    
-                    // 根据方向计算眼睛位置
-                    let eye1X, eye1Y, eye2X, eye2Y;
-                    const eyeOffset = CELL_SIZE / 4;
-                    
-                    switch (direction) {
-                        case 'up':
-                            eye1X = x - eyeOffset;
-                            eye1Y = y - eyeOffset;
-                            eye2X = x + eyeOffset;
-                            eye2Y = y - eyeOffset;
-                            break;
-                        case 'down':
-                            eye1X = x - eyeOffset;
-                            eye1Y = y + eyeOffset;
-                            eye2X = x + eyeOffset;
-                            eye2Y = y + eyeOffset;
-                            break;
-                        case 'left':
-                            eye1X = x - eyeOffset;
-                            eye1Y = y - eyeOffset;
-                            eye2X = x - eyeOffset;
-                            eye2Y = y + eyeOffset;
-                            break;
-                        case 'right':
-                            eye1X = x + eyeOffset;
-                            eye1Y = y - eyeOffset;
-                            eye2X = x + eyeOffset;
-                            eye2Y = y + eyeOffset;
-                            break;
-                    }
-                    
-                    ctx.beginPath();
-                    ctx.arc(eye1X, eye1Y, 2, 0, Math.PI * 2);
-                    ctx.arc(eye2X, eye2Y, 2, 0, Math.PI * 2);
-                    ctx.fill();
+                    emoji = '😍'; // 蛇头
+                } else {
+                    emoji = '🫣'; // 蛇身
                 }
+
+                // 绘制表情
+                ctx.fillText(emoji, segment.x * CELL_SIZE, segment.y * CELL_SIZE + CELL_SIZE);
             });
         }
-        
+
         // 生成新食物
         function spawnFood() {
             let newFood;
@@ -281,10 +269,10 @@
                     y: Math.floor(Math.random() * GRID_SIZE)
                 };
             } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
-            
+
             food = newFood;
         }
-        
+
         // 处理键盘输入
         function handleKeyPress(e) {
             if (!gameStarted && !gameOver) {
@@ -295,7 +283,7 @@
                 }
                 return;
             }
-            
+
             // 防止180度转弯
             switch (e.code) {
                 case 'ArrowUp':
@@ -312,7 +300,7 @@
                     break;
             }
         }
-        
+
         // 游戏结束
         function endGame() {
             gameOver = true;
@@ -320,7 +308,7 @@
             gameMessage.textContent = `游戏结束! 得分: ${score}`;
             restartButton.style.display = 'block';
         }
-        
+
         // 启动游戏
         window.onload = init;
     </script>
